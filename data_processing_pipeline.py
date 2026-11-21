@@ -74,7 +74,13 @@ def plot_raw_data(input_file: Path, plot_enabled: bool = False, debug_plot: bool
         return
 
     timestamps, adc_output_data = handle_input_data(input_file)
-    segment_length_ms = 5 * 60 * 1000
+
+    # Normalize each ADC belt independently by subtracting its mean.
+    for adc_index in range(ADC_COUNT):
+        mean_voltage = np.mean(adc_output_data[adc_index])
+        adc_output_data[adc_index] -= mean_voltage
+
+    segment_length_ms = 2 * 60 * 1000
     segment_count = int(np.ceil(timestamps[-1] / segment_length_ms))
 
     os.makedirs("results/raw_segments", exist_ok=True)
@@ -89,33 +95,32 @@ def plot_raw_data(input_file: Path, plot_enabled: bool = False, debug_plot: bool
 
         segment_timestamps = timestamps[mask]
 
-        fig, axes = plt.subplots(
-            ADC_COUNT,
-            1,
-            figsize=(12, 12),
-            sharex=True
-        )
+        fig, ax = plt.subplots(figsize=(12, 7))
 
-        for adc_index, ax in enumerate(axes):
+        for adc_index in range(ADC_COUNT):
             ax.plot(
                 segment_timestamps,
                 adc_output_data[adc_index][mask],
-                linewidth=0.8
+                linewidth=1,
+                label=f"ADC {adc_index}"
             )
-            ax.set_title(f"ADC {adc_index} Output")
-            ax.set_ylabel("Voltage (V)")
-            if debug_plot:
-                ax.grid(True)
 
-        axes[-1].set_xlabel("Time from recording start (ms)")
-        fig.suptitle(
+        ax.axhline(0, color="black", linewidth=0.8, linestyle="--")
+        ax.set_title(
             f"{input_file.name} - "
             f"minutes {segment_start // 60000}-{segment_end // 60000}"
         )
+        ax.set_xlabel("Time from recording start (ms)")
+        ax.set_ylabel("Voltage deviation from mean (V)")
+        ax.legend(ncol=5)
+
+        if debug_plot:
+            ax.grid(True)
+
         fig.tight_layout()
 
         output_path = (
-            f"results/raw_segments/"
+            "results/raw_segments/"
             f"{input_file.stem}_segment_{segment_index + 1}.png"
         )
         fig.savefig(output_path, dpi=150)
