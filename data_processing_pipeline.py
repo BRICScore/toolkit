@@ -4,7 +4,7 @@ from brics_toolkit.utils.config import *
 import argparse
 from brics_toolkit.data_containers import BRVDataClean
 from brics_toolkit.data_containers import MeasurementData, MeasurementMetadata
-from brics_toolkit.data_processing.initial_data_processing import initial_data_processing
+from brics_toolkit.data_processing.initial_data_processing import handle_input_data, initial_data_processing
 from brics_toolkit.data_processing.extract_features import extract_features
 from brics_toolkit.database_access.database_handler import DatabaseHandler
 
@@ -69,6 +69,59 @@ def clear_results_folder():
             if result.is_file():
                 os.remove(result.path)
 
+def plot_raw_data(input_file: Path, plot_enabled: bool = False, debug_plot: bool = False):
+    if not plot_enabled:
+        return
+
+    timestamps, adc_output_data = handle_input_data(input_file)
+    segment_length_ms = 5 * 60 * 1000
+    segment_count = int(np.ceil(timestamps[-1] / segment_length_ms))
+
+    os.makedirs("results/raw_segments", exist_ok=True)
+
+    for segment_index in range(segment_count):
+        segment_start = segment_index * segment_length_ms
+        segment_end = segment_start + segment_length_ms
+        mask = (timestamps >= segment_start) & (timestamps < segment_end)
+
+        if not np.any(mask):
+            continue
+
+        segment_timestamps = timestamps[mask]
+
+        fig, axes = plt.subplots(
+            ADC_COUNT,
+            1,
+            figsize=(12, 12),
+            sharex=True
+        )
+
+        for adc_index, ax in enumerate(axes):
+            ax.plot(
+                segment_timestamps,
+                adc_output_data[adc_index][mask],
+                linewidth=0.8
+            )
+            ax.set_title(f"ADC {adc_index} Output")
+            ax.set_ylabel("Voltage (V)")
+            if debug_plot:
+                ax.grid(True)
+
+        axes[-1].set_xlabel("Time from recording start (ms)")
+        fig.suptitle(
+            f"{input_file.name} - "
+            f"minutes {segment_start // 60000}-{segment_end // 60000}"
+        )
+        fig.tight_layout()
+
+        output_path = (
+            f"results/raw_segments/"
+            f"{input_file.stem}_segment_{segment_index + 1}.png"
+        )
+        fig.savefig(output_path, dpi=150)
+        plt.show()
+        plt.close(fig)
+
 def main():
     input_file_str = input("Raw input file name (with extension) located in the data folder:\n")
     input_file = Path(input_file_str)
@@ -79,6 +132,9 @@ def main():
     measurement_metadata = MeasurementMetadata()
     measurement_metadata.filepath_raw = Path(input_file)
     measurement_data.metadata = measurement_metadata
+
+    plot_raw_data(input_file, plot_enabled=plot_enabled, debug_plot=debug_plot)
+    return
     
     initial_data_processing(BRV_measurement_data = measurement_data, target_adc = TARGET_ADC, plot_enabled = plot_enabled)
     measurement_metadata.filepath_raw = Path(f"./data/{input_file}")
