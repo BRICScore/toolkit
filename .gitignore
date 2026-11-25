@@ -213,3 +213,9 @@ __marimo__/
 *.jsonl
 /workfiles
 test.py
+.run_pipeline_no_upload_adc0.py
+breath_stats.txt
+run_adc_toolkit_experiment.ps1
+run_data_pipeline.ps1
+run_data_pipeline.ps1
+*.ps1

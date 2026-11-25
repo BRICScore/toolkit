@@ -27,11 +27,26 @@ if ($files.Count -eq 0) {
     exit 1
 }
 
+$outputPath = Join-Path $PSScriptRoot "breath_stats.txt"
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+# Clear the report before starting using UTF-8 without BOM.
+[System.IO.File]::WriteAllText($outputPath, "", $utf8NoBom)
+
 try {
     foreach ($file in $files) {
         Write-Host "`nProcessing: $($file.Name)"
 
-        python $wrapperPath $file.Name
+        $pythonOutput = & python $wrapperPath $file.Name
+
+        foreach ($line in $pythonOutput) {
+            Write-Host $line
+            [System.IO.File]::AppendAllText(
+                $outputPath,
+                $line + [Environment]::NewLine,
+                $utf8NoBom
+            )
+        }
 
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Failed: $($file.Name)"
