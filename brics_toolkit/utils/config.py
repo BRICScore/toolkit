@@ -44,7 +44,7 @@ EXHALE_INDEX = 2
 MIN_INHALE_OR_EXHALE_LENGTH = 500.0
 CUMULATIVE_VARIANCE_THRESHOLD = 0.95 # part of variance (information) to be left after feature reduction
 
-MODE_BREATH_COUNT = 5 # for the data we have as for 11.03.2026 22:06 above 7 we get some strange breaths
+MODE_BREATH_COUNT = 10 # for the data we have as for 11.03.2026 22:06 above 7 we get some strange breaths
 SIM_MINUTES_COUNT = 2
 
 MEASUREMENT_ZIP_PATH = pathlib.Path.home() / "Downloads" / "measurements_dataset.zip" #paths for handling of the measurement zip files
